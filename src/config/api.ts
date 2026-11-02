@@ -5,7 +5,7 @@ import {NativeModules, Platform} from 'react-native';
  * Depois do deploy, atualize este endereço.
  */
 export const PRODUCTION_API_URL =
-  'https://cadastro-plus-api.onrender.com/api';
+  'https://classetech.onrender.com/api';
 
 type LocalApiConfig = {
   host?: string;
