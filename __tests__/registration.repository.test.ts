@@ -9,8 +9,8 @@ jest.mock('../src/services/storage/documents', () => ({
 }));
 
 import {
-  existsDocumentNumber,
   getRegistrationById,
+  listDocumentKeys,
   listRegistrations,
   saveRegistration,
 } from '../src/repositories/registrationRepository';
@@ -20,7 +20,7 @@ describe('registration repository', () => {
     mockExecuteAsync.mockReset();
   });
 
-  it('salva cadastro e consulta existência', async () => {
+  it('salva cadastro e lista chaves de documento', async () => {
     mockExecuteAsync.mockResolvedValueOnce({rows: {_array: []}});
     mockExecuteAsync.mockResolvedValueOnce({
       rows: {
@@ -50,7 +50,9 @@ describe('registration repository', () => {
       },
     });
     mockExecuteAsync.mockResolvedValueOnce({
-      rows: {_array: [{total: 1}]},
+      rows: {
+        _array: [{id: 'repo-test-1', document_number: '52998224725'}],
+      },
     });
 
     await saveRegistration({
@@ -81,8 +83,8 @@ describe('registration repository', () => {
     const list = await listRegistrations();
     expect(list[0]?.person?.nomeCompleto).toBe('Maria Souza');
 
-    const exists = await existsDocumentNumber('529.982.247-25');
-    expect(exists).toBe(true);
+    const keys = await listDocumentKeys();
+    expect(keys[0]).toBe('repo-test-1|52998224725');
 
     mockExecuteAsync.mockResolvedValueOnce({
       rows: {

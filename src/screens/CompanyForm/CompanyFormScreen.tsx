@@ -11,25 +11,30 @@ import {
 } from '../../components';
 import {useRegistrations} from '../../context/RegistrationsContext';
 import {useCepLookup, useCnpjLookup} from '../../hooks';
-import {existsDocumentNumber} from '../../repositories/registrationRepository';
+import {listDocumentKeys} from '../../repositories/registrationRepository';
 import {
-  companyStep1Schema,
-  companyStep2Schema,
-  emptyCompanyValues,
-  normalizeCompanyValues,
-  type CompanyFormValues,
-} from '../../schemas';
-import type {AttachedDocument, DocumentKind, RootStackParamList} from '../../types';
+  validateCompanyStep,
+  validateUniqueDocument,
+} from '../../services/api/validationApi';
+import type {
+  AttachedDocument,
+  CompanyFormValues,
+  DocumentKind,
+  RootStackParamList,
+} from '../../types';
+import {emptyCompanyValues} from '../../types/forms';
 import {colors, spacing, typography} from '../../theme';
 import {
+  applyApiErrors,
+  createId,
   formatCep,
   formatCnpj,
   formatCpf,
   formatPhone,
+  normalizeCompanyValues,
+  resolveDocumentationStatus,
   showError,
   showSuccess,
-  createId,
-  resolveDocumentationStatus,
   stripDigits,
 } from '../../utils';
 
@@ -57,7 +62,6 @@ export function CompanyFormScreen({navigation, route}: Props) {
     formState: {errors},
   } = useForm<CompanyFormValues>({
     defaultValues: emptyCompanyValues,
-    mode: 'onBlur',
   });
 
   const documentList = useMemo(
@@ -66,36 +70,38 @@ export function CompanyFormScreen({navigation, route}: Props) {
   );
 
   async function validateStep(current: number) {
+    clearErrors();
     const values = getValues();
-    if (current === 1) {
-      const parsed = companyStep1Schema.safeParse(values);
-      if (!parsed.success) {
-        parsed.error.issues.forEach(issue => {
-          setError(issue.path.join('.') as any, {message: issue.message});
-        });
-        return false;
+    const payload =
+      current === 1
+        ? values
+        : current === 2
+          ? {representante: values.representante}
+          : {};
+
+    const result = await validateCompanyStep(current, payload);
+    if (!result.ok) {
+      applyApiErrors(setError, result.errors);
+      if (!Object.keys(result.errors).length) {
+        showError(result.message);
       }
-      clearErrors();
-      const duplicated = await existsDocumentNumber(values.cnpj, editingId);
-      if (duplicated) {
-        setError('cnpj', {message: 'Já existe um cadastro com este CNPJ'});
-        return false;
-      }
-      return true;
+      return false;
     }
 
-    if (current === 2) {
-      const parsed = companyStep2Schema.safeParse({
-        representante: values.representante,
+    if (current === 1) {
+      const unique = await validateUniqueDocument({
+        type: 'CNPJ',
+        document: values.cnpj,
+        existing: await listDocumentKeys(),
+        excludeId: editingId,
       });
-      if (!parsed.success) {
-        parsed.error.issues.forEach(issue => {
-          setError(issue.path.join('.') as any, {message: issue.message});
-        });
+      if (!unique.ok) {
+        applyApiErrors(setError, unique.errors);
+        if (!Object.keys(unique.errors).length) {
+          showError(unique.message);
+        }
         return false;
       }
-      clearErrors();
-      return true;
     }
 
     return true;
@@ -104,7 +110,7 @@ export function CompanyFormScreen({navigation, route}: Props) {
   async function handleCnpjLookup() {
     const cnpj = getValues('cnpj');
     if (!cnpj) {
-      setError('cnpj', {message: 'Informe o CNPJ'});
+      setError('cnpj', {type: 'server', message: 'Informe o CNPJ'});
       return;
     }
     const data = await lookupCnpj(cnpj);
@@ -115,31 +121,27 @@ export function CompanyFormScreen({navigation, route}: Props) {
       return;
     }
 
-    setValue('razaoSocial', data.razao_social ?? '', {shouldValidate: true});
-    setValue('nomeFantasia', data.nome_fantasia ?? '', {shouldValidate: true});
+    setValue('razaoSocial', data.razao_social ?? '');
+    setValue('nomeFantasia', data.nome_fantasia ?? '');
     setValue('situacaoCadastral', data.descricao_situacao_cadastral ?? '');
     setValue('dataAbertura', data.data_inicio_atividade ?? '');
     setValue('naturezaJuridica', data.natureza_juridica ?? '');
     setValue('cnaePrincipal', data.cnae_fiscal_descricao ?? '');
     if (data.email) {
-      setValue('email', data.email, {shouldValidate: true});
+      setValue('email', data.email);
     }
     if (data.ddd_telefone_1) {
-      setValue('telefone', formatPhone(stripDigits(data.ddd_telefone_1)), {
-        shouldValidate: true,
-      });
+      setValue('telefone', formatPhone(stripDigits(data.ddd_telefone_1)));
     }
     if (data.cep) {
-      setValue('endereco.cep', formatCep(data.cep), {shouldValidate: true});
+      setValue('endereco.cep', formatCep(data.cep));
     }
-    setValue('endereco.logradouro', data.logradouro ?? '', {
-      shouldValidate: true,
-    });
-    setValue('endereco.numero', data.numero ?? '', {shouldValidate: true});
+    setValue('endereco.logradouro', data.logradouro ?? '');
+    setValue('endereco.numero', data.numero ?? '');
     setValue('endereco.complemento', data.complemento ?? '');
-    setValue('endereco.bairro', data.bairro ?? '', {shouldValidate: true});
-    setValue('endereco.cidade', data.municipio ?? '', {shouldValidate: true});
-    setValue('endereco.estado', data.uf ?? '', {shouldValidate: true});
+    setValue('endereco.bairro', data.bairro ?? '');
+    setValue('endereco.cidade', data.municipio ?? '');
+    setValue('endereco.estado', data.uf ?? '');
     showSuccess('Dados do CNPJ preenchidos. Revise antes de continuar.', 'Consulta OK');
   }
 
@@ -150,12 +152,10 @@ export function CompanyFormScreen({navigation, route}: Props) {
       showError('Não foi possível consultar o CEP. Preencha manualmente.');
       return;
     }
-    setValue('endereco.logradouro', address.street ?? '', {shouldValidate: true});
-    setValue('endereco.bairro', address.neighborhood ?? '', {
-      shouldValidate: true,
-    });
-    setValue('endereco.cidade', address.city ?? '', {shouldValidate: true});
-    setValue('endereco.estado', address.state ?? '', {shouldValidate: true});
+    setValue('endereco.logradouro', address.street ?? '');
+    setValue('endereco.bairro', address.neighborhood ?? '');
+    setValue('endereco.cidade', address.city ?? '');
+    setValue('endereco.estado', address.state ?? '');
   }
 
   async function handleContinue() {

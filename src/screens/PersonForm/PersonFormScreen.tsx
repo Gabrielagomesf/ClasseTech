@@ -11,20 +11,31 @@ import {
 } from '../../components';
 import {useRegistrations} from '../../context/RegistrationsContext';
 import {useCepLookup} from '../../hooks';
-import {existsDocumentNumber} from '../../repositories/registrationRepository';
+import {listDocumentKeys} from '../../repositories/registrationRepository';
 import {
-  emptyPersonValues,
-  normalizePersonValues,
-  personStep1Schema,
-  personStep2Schema,
-  type PersonFormValues,
-} from '../../schemas';
-import type {AttachedDocument, DocumentKind, RootStackParamList} from '../../types';
+  validatePersonStep,
+  validateUniqueDocument,
+} from '../../services/api/validationApi';
+import type {
+  AttachedDocument,
+  DocumentKind,
+  PersonFormValues,
+  RootStackParamList,
+} from '../../types';
+import {emptyPersonValues} from '../../types/forms';
 import {colors, spacing, typography} from '../../theme';
-import {showError, showSuccess} from '../../utils/alerts';
-import {formatCep, formatCpf, formatDateBr, formatPhone} from '../../utils';
-import {createId} from '../../utils/id';
-import {resolveDocumentationStatus} from '../../utils/documentation';
+import {
+  applyApiErrors,
+  createId,
+  formatCep,
+  formatCpf,
+  formatDateBr,
+  formatPhone,
+  normalizePersonValues,
+  resolveDocumentationStatus,
+  showError,
+  showSuccess,
+} from '../../utils';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PersonForm'>;
 
@@ -35,9 +46,9 @@ export function PersonFormScreen({navigation, route}: Props) {
   const {lookup, loading: cepLoading} = useCepLookup();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [docs, setDocs] = useState<Partial<Record<DocumentKind, AttachedDocument>>>(
-    {},
-  );
+  const [docs, setDocs] = useState<
+    Partial<Record<DocumentKind, AttachedDocument>>
+  >({});
   const editingId = route.params?.registrationId;
 
   const {
@@ -49,7 +60,6 @@ export function PersonFormScreen({navigation, route}: Props) {
     formState: {errors},
   } = useForm<PersonFormValues>({
     defaultValues: emptyPersonValues,
-    mode: 'onBlur',
   });
 
   const documentList = useMemo(
@@ -58,36 +68,39 @@ export function PersonFormScreen({navigation, route}: Props) {
   );
 
   async function validateStep(current: number) {
+    clearErrors();
     const values = getValues();
-    if (current === 1) {
-      const parsed = personStep1Schema.safeParse(values);
-      if (!parsed.success) {
-        parsed.error.issues.forEach(issue => {
-          const field = issue.path[0] as keyof PersonFormValues;
-          setError(field, {message: issue.message});
-        });
-        return false;
+
+    const payload =
+      current === 1
+        ? values
+        : current === 2
+          ? {endereco: values.endereco}
+          : {};
+
+    const result = await validatePersonStep(current, payload);
+    if (!result.ok) {
+      applyApiErrors(setError, result.errors);
+      if (!Object.keys(result.errors).length) {
+        showError(result.message);
       }
-      clearErrors();
-      const duplicated = await existsDocumentNumber(values.cpf, editingId);
-      if (duplicated) {
-        setError('cpf', {message: 'Já existe um cadastro com este CPF'});
-        return false;
-      }
-      return true;
+      return false;
     }
 
-    if (current === 2) {
-      const parsed = personStep2Schema.safeParse({endereco: values.endereco});
-      if (!parsed.success) {
-        parsed.error.issues.forEach(issue => {
-          const key = issue.path.join('.') as any;
-          setError(key, {message: issue.message});
-        });
+    if (current === 1) {
+      const unique = await validateUniqueDocument({
+        type: 'CPF',
+        document: values.cpf,
+        existing: await listDocumentKeys(),
+        excludeId: editingId,
+      });
+      if (!unique.ok) {
+        applyApiErrors(setError, unique.errors);
+        if (!Object.keys(unique.errors).length) {
+          showError(unique.message);
+        }
         return false;
       }
-      clearErrors();
-      return true;
     }
 
     return true;
@@ -100,12 +113,10 @@ export function PersonFormScreen({navigation, route}: Props) {
       showError('Não foi possível consultar o CEP. Preencha manualmente.');
       return;
     }
-    setValue('endereco.logradouro', address.street ?? '', {shouldValidate: true});
-    setValue('endereco.bairro', address.neighborhood ?? '', {
-      shouldValidate: true,
-    });
-    setValue('endereco.cidade', address.city ?? '', {shouldValidate: true});
-    setValue('endereco.estado', address.state ?? '', {shouldValidate: true});
+    setValue('endereco.logradouro', address.street ?? '');
+    setValue('endereco.bairro', address.neighborhood ?? '');
+    setValue('endereco.cidade', address.city ?? '');
+    setValue('endereco.estado', address.state ?? '');
   }
 
   async function handleContinue() {
@@ -363,7 +374,10 @@ export function PersonFormScreen({navigation, route}: Props) {
             required
             value={docs.identificacao}
             onChange={doc =>
-              setDocs(current => ({...current, identificacao: doc ?? undefined}))
+              setDocs(current => ({
+                ...current,
+                identificacao: doc ?? undefined,
+              }))
             }
           />
           <DocumentPickerField
@@ -383,7 +397,10 @@ export function PersonFormScreen({navigation, route}: Props) {
             kind="complementar"
             value={docs.complementar}
             onChange={doc =>
-              setDocs(current => ({...current, complementar: doc ?? undefined}))
+              setDocs(current => ({
+                ...current,
+                complementar: doc ?? undefined,
+              }))
             }
           />
         </View>

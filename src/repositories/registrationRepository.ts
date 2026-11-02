@@ -145,20 +145,13 @@ export async function deleteRegistration(id: string): Promise<void> {
   await db.executeAsync('DELETE FROM registrations WHERE id = ?', [id]);
 }
 
-export async function existsDocumentNumber(
-  document: string,
-  excludeId?: string,
-): Promise<boolean> {
-  const normalized = document.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+export async function listDocumentKeys(): Promise<string[]> {
   const db = getDatabase();
-  const result = await db.executeAsync<{total: number}>(
-    excludeId
-      ? 'SELECT COUNT(*) as total FROM registrations WHERE document_number = ? AND id != ?'
-      : 'SELECT COUNT(*) as total FROM registrations WHERE document_number = ?',
-    excludeId ? [normalized, excludeId] : [normalized],
+  const result = await db.executeAsync<{id: string; document_number: string}>(
+    'SELECT id, document_number FROM registrations',
   );
   const rows = result.rows?._array ?? [];
-  return Number(rows[0]?.total ?? 0) > 0;
+  return rows.map(row => `${row.id}|${row.document_number}`);
 }
 
 export async function getDashboardStats() {

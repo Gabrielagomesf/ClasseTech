@@ -40,6 +40,16 @@ local.properties
 node_modules/
 npm-debug.log
 yarn-error.log
+backend/node_modules/
+backend/dist/
+
+# env / local
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+src/config/api.local.json
 
 # fastlane
 #
