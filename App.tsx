@@ -2,8 +2,8 @@ import React from 'react';
 import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {enableScreens} from 'react-native-screens';
+import {FeedbackProvider} from './src/components/feedback/FeedbackProvider';
 import {RegistrationsProvider} from './src/context/RegistrationsContext';
-import {UserProfileProvider} from './src/context/UserProfileContext';
 import {RootNavigator} from './src/navigation';
 
 enableScreens();
@@ -13,9 +13,9 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" />
       <RegistrationsProvider>
-        <UserProfileProvider>
+        <FeedbackProvider>
           <RootNavigator />
-        </UserProfileProvider>
+        </FeedbackProvider>
       </RegistrationsProvider>
     </SafeAreaProvider>
   );

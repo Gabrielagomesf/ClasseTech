@@ -8,8 +8,8 @@ import {AppIcon, type AppIconName} from '../components/ui/AppIcon';
 import {useLayout} from '../hooks/useLayout';
 import {
   DashboardScreen,
-  DocumentsScreen,
   RegistrationsScreen,
+  ReportsScreen,
   SettingsScreen,
 } from '../screens';
 import type {MainTabParamList, RootStackParamList} from '../types';
@@ -131,16 +131,12 @@ export function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Documents"
-        component={DocumentsScreen}
+        name="Reports"
+        component={ReportsScreen}
         options={{
-          title: 'Documentos',
+          title: 'Relatórios',
           tabBarIcon: ({focused}) => (
-            <TabIcon
-              icon="file-document-outline"
-              label="Documentos"
-              focused={focused}
-            />
+            <TabIcon icon="chart-donut" label="Relatórios" focused={focused} />
           ),
         }}
       />
@@ -148,9 +144,9 @@ export function MainTabs() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          title: 'Mais',
+          title: 'Config',
           tabBarIcon: ({focused}) => (
-            <TabIcon icon="dots-horizontal" label="Mais" focused={focused} />
+            <TabIcon icon="cog-outline" label="Config" focused={focused} />
           ),
         }}
       />

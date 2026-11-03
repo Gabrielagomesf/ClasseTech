@@ -7,10 +7,6 @@ export type RootStackParamList = {
   PersonForm: {registrationId?: string; step?: number} | undefined;
   CompanyForm: {registrationId?: string; step?: number} | undefined;
   RegistrationDetails: {registrationId: string};
-  Filters: {
-    type?: 'ALL' | 'PF' | 'PJ';
-    documentationStatus?: 'ALL' | 'complete' | 'pending';
-  };
 };
 
 export type MainTabParamList = {
@@ -21,7 +17,7 @@ export type MainTabParamList = {
       }
     | undefined;
   NewRegistration: undefined;
-  Documents: undefined;
+  Reports: undefined;
   Settings: undefined;
 };
 

@@ -1,6 +1,13 @@
 import React, {PropsWithChildren} from 'react';
-import {ScrollView, StyleSheet, View, ViewStyle} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useLayout} from '../../hooks/useLayout';
 import {colors, spacing} from '../../theme';
 
@@ -21,11 +28,12 @@ export function Screen({
   centered = true,
 }: Props) {
   const {contentMaxWidth, horizontalPadding} = useLayout();
+  const insets = useSafeAreaInsets();
 
   const frameStyle: ViewStyle = {
     paddingHorizontal: horizontalPadding,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xxxl,
     flexGrow: 1,
     ...(centered && contentMaxWidth
       ? {
@@ -38,16 +46,23 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} style={[styles.safe, style]}>
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={[frameStyle, contentStyle]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[frameStyle, styles.flex, contentStyle]}>{children}</View>
-      )}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 8 : 0}>
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={[frameStyle, contentStyle]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}>
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[frameStyle, styles.flex, contentStyle]}>{children}</View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

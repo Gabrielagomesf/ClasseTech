@@ -1,7 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -11,22 +10,15 @@ import type {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 import type {CompositeScreenProps} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {BulkImportPanel} from '../../components/BulkImportPanel';
 import {
-  AppIcon,
-  Card,
-  EmptyState,
-  PillTabs,
-  Screen,
-  StatusDot,
-} from '../../components';
+  RegistrationFiltersPanel,
+  type RegistrationFiltersState,
+} from '../../components/RegistrationFiltersPanel';
+import {AppIcon, Card, EmptyState, Screen, StatusDot} from '../../components';
 import {useLayout} from '../../hooks/useLayout';
 import {useRegistrations} from '../../context/RegistrationsContext';
-import type {
-  DocumentationStatus,
-  MainTabParamList,
-  PersonType,
-  RootStackParamList,
-} from '../../types';
+import type {MainTabParamList, RootStackParamList} from '../../types';
 import {
   ESTABLISHMENT_TYPE_OPTIONS,
   getCatalogLabel,
@@ -43,36 +35,69 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
-type TypeFilter = 'ALL' | PersonType;
+const DEFAULT_FILTERS: RegistrationFiltersState = {
+  type: 'ALL',
+  status: 'ALL',
+  establishment: 'ALL',
+};
+
+function countActiveFilters(filters: RegistrationFiltersState): number {
+  let count = 0;
+  if (filters.type !== 'ALL') {
+    count += 1;
+  }
+  if (filters.status !== 'ALL') {
+    count += 1;
+  }
+  if (filters.establishment !== 'ALL') {
+    count += 1;
+  }
+  return count;
+}
 
 export function RegistrationsScreen({navigation, route}: Props) {
   const insets = useSafeAreaInsets();
   const {scaleFont, isCompact} = useLayout();
   const {items, loading} = useRegistrations();
   const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
-  const [statusFilter, setStatusFilter] = useState<
-    'ALL' | DocumentationStatus
-  >(route.params?.documentationStatus ?? 'ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<RegistrationFiltersState>(() => ({
+    ...DEFAULT_FILTERS,
+    status: route.params?.documentationStatus ?? 'ALL',
+  }));
 
   useEffect(() => {
     if (route.params?.documentationStatus) {
-      setStatusFilter(route.params.documentationStatus);
+      setFilters(current => ({
+        ...current,
+        status: route.params!.documentationStatus!,
+      }));
+      setFiltersOpen(true);
     }
   }, [route.params?.documentationStatus]);
+
+  const activeFilterCount = countActiveFilters(filters);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const digits = query.replace(/\D/g, '');
     return items.filter(item => {
-      if (typeFilter !== 'ALL' && item.type !== typeFilter) {
+      if (filters.type !== 'ALL' && item.type !== filters.type) {
         return false;
       }
       if (
-        statusFilter !== 'ALL' &&
-        item.documentationStatus !== statusFilter
+        filters.status !== 'ALL' &&
+        item.documentationStatus !== filters.status
       ) {
         return false;
+      }
+      if (filters.establishment !== 'ALL') {
+        if (item.type !== 'PJ') {
+          return false;
+        }
+        if (item.company?.tipoEstabelecimento !== filters.establishment) {
+          return false;
+        }
       }
       if (!q) {
         return true;
@@ -85,31 +110,20 @@ export function RegistrationsScreen({navigation, route}: Props) {
         (digits && JSON.stringify(item).includes(digits))
       );
     });
-  }, [items, query, typeFilter, statusFilter]);
+  }, [items, query, filters]);
 
   return (
     <Screen
       scroll
       contentStyle={{paddingBottom: spacing.xxxl + Math.max(insets.bottom, 8)}}>
-      <View style={styles.header}>
-        <Text style={[typography.title, {fontSize: scaleFont(isCompact ? 22 : 24)}]}>
-          Cadastros
-        </Text>
-        <Pressable
-          accessibilityLabel="Filtros"
-          onPress={() =>
-            navigation.navigate('Filters', {
-              type: typeFilter === 'ALL' ? undefined : typeFilter,
-              documentationStatus:
-                statusFilter === 'ALL' || statusFilter === 'issue'
-                  ? undefined
-                  : statusFilter,
-            })
-          }
-          style={styles.filterBtn}>
-          <AppIcon name="filter-variant" size={22} color={colors.primary} />
-        </Pressable>
-      </View>
+      <Text style={[typography.title, {fontSize: scaleFont(isCompact ? 22 : 24)}]}>
+        Cadastros
+      </Text>
+      <Text style={[typography.caption, styles.subtitle]}>
+        {filtered.length} resultado(s) · {items.length} no total
+      </Text>
+
+      <BulkImportPanel />
 
       <View style={styles.searchWrap}>
         <AppIcon name="magnify" size={22} color={colors.textMuted} />
@@ -122,34 +136,20 @@ export function RegistrationsScreen({navigation, route}: Props) {
         />
       </View>
 
-      <PillTabs
-        value={typeFilter}
-        onChange={setTypeFilter}
-        options={[
-          {value: 'ALL', label: 'Todos'},
-          {value: 'PF', label: 'PF'},
-          {value: 'PJ', label: 'PJ'},
-        ]}
+      <RegistrationFiltersPanel
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen(current => !current)}
+        filters={filters}
+        onChange={setFilters}
+        activeCount={activeFilterCount}
       />
-
-      {statusFilter !== 'ALL' ? (
-        <View style={styles.activeFilter}>
-          <Text style={styles.activeFilterText}>
-            Filtro:{' '}
-            {statusFilter === 'pending' ? 'Pendentes' : 'Documentação completa'}
-          </Text>
-          <Pressable onPress={() => setStatusFilter('ALL')}>
-            <Text style={styles.clearFilter}>Limpar</Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{marginTop: 24}} />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Nenhum cadastro encontrado"
-          description="Ajuste a busca/filtros ou crie um novo cadastro."
+          description="Ajuste a busca ou os filtros avançados."
           actionLabel="+ Novo cadastro"
           onAction={() => navigation.navigate('SelectPersonType')}
         />
@@ -194,21 +194,9 @@ export function RegistrationsScreen({navigation, route}: Props) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  subtitle: {
+    marginTop: spacing.xs,
     marginBottom: spacing.md,
-  },
-  filterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   searchWrap: {
     flexDirection: 'row',
@@ -227,27 +215,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingVertical: 0,
   },
-  activeFilter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-  },
-  activeFilterText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  clearFilter: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
   list: {
     flex: 1,
     gap: spacing.sm,
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
   },
   card: {
     marginBottom: spacing.sm,

@@ -3,7 +3,6 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {
   CompanyFormScreen,
-  FiltersScreen,
   PersonFormScreen,
   RegistrationDetailsScreen,
   SelectPersonTypeScreen,
@@ -56,11 +55,6 @@ export function RootNavigator() {
           name="RegistrationDetails"
           component={RegistrationDetailsScreen}
           options={{title: 'Detalhes'}}
-        />
-        <Stack.Screen
-          name="Filters"
-          component={FiltersScreen}
-          options={{title: 'Filtros', presentation: 'modal'}}
         />
       </Stack.Navigator>
     </NavigationContainer>

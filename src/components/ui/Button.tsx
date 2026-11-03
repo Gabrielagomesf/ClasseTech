@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
   ViewStyle,
@@ -16,7 +17,7 @@ type Props = {
   variant?: Variant;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   compact?: boolean;
 };
 
