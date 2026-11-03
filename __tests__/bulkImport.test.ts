@@ -20,4 +20,12 @@ describe('bulk import csv', () => {
     const rows = parseCsv('a;b\n1;2');
     expect(rows[1]).toEqual(['1', '2']);
   });
+
+  it('imports PJ example row from template (sem endereço na planilha)', async () => {
+    const csv = buildTemplateCsv('PJ');
+    const result = await importRegistrationsFromCsv(csv, 'PJ');
+    expect(result.imported).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(result.rows[0]?.ok).toBe(true);
+  });
 });

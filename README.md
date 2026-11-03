@@ -2,6 +2,8 @@
 
 Aplicativo Android (React Native) para cadastro de Pessoa Física e Pessoa Jurídica, com API de validação.
 
+Documentação completa do produto e da arquitetura: **[docs/DOCUMENTACAO.md](docs/DOCUMENTACAO.md)**.
+
 ## Stack
 
 - React Native CLI + TypeScript

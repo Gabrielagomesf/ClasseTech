@@ -11,6 +11,7 @@ import {colors, spacing, typography} from '../theme';
 import {importRegistrationsFromCsv} from '../services/bulkImport/bulkImportService';
 import {shareBulkTemplate} from '../services/bulkImport/shareTemplate';
 import {showError, showSuccess} from '../utils/alerts';
+import {resolvePickedFileUri} from '../utils/pickedFile';
 
 export function BulkImportPanel() {
   const {save, refresh} = useRegistrations();
@@ -33,7 +34,8 @@ export function BulkImportPanel() {
       if (!file?.uri) {
         return;
       }
-      const csvText = await RNFS.readFile(file.uri, 'utf8');
+      const localUri = await resolvePickedFileUri(file);
+      const csvText = await RNFS.readFile(localUri, 'utf8');
       const summary = await importRegistrationsFromCsv(csvText, bulkType);
       if (summary.total === 0 && summary.failed === 0) {
         showError('Planilha vazia ou sem linhas de dados.');

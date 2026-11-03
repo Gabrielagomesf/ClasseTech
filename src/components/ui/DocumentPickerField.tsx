@@ -11,6 +11,7 @@ import {colors, radius, spacing, typography} from '../../theme';
 import {persistDocument, deleteDocument} from '../../services/storage/documents';
 import {showError} from '../../utils/alerts';
 import {formatFileSize} from '../../utils/fileSize';
+import {resolvePickedFileUri} from '../../utils/pickedFile';
 import {Button} from './Button';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -59,8 +60,9 @@ export function DocumentPickerField({
         await deleteDocument(value.uri);
       }
 
+      const localUri = await resolvePickedFileUri(file);
       const saved = await persistDocument(
-        file.uri,
+        localUri,
         file.name ?? `documento_${kind}`,
         file.type ?? 'application/octet-stream',
         size,

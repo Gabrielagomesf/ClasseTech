@@ -1,11 +1,12 @@
 import {listDocumentKeys} from '../../repositories/registrationRepository';
-import type {PersonType, Registration} from '../../types';
+import type {CompanyFormValues, PersonType, Registration} from '../../types';
 import {emptyCompanyValues, emptyPersonValues} from '../../types/forms';
 import {
   validateCompanyStepLocal,
   validatePersonStepLocal,
   validateUniqueDocumentLocal,
 } from '../validation/localValidation';
+import type {ValidationResult} from '../api/validationApi';
 import {
   PF_CSV_HEADERS,
   PJ_CSV_HEADERS,
@@ -42,6 +43,28 @@ function headersMatch(
 ): boolean {
   const normalized = headerRow.map(value => value.trim().toLowerCase());
   return expected.every((header, index) => normalized[index] === header);
+}
+
+/** Planilha não traz endereço; ignora erros só de endereco.* na etapa 1 do PJ. */
+function validateCompanyBulkRow(values: CompanyFormValues): ValidationResult {
+  const step1 = validateCompanyStepLocal(1, values);
+  if (!step1.ok) {
+    const errors = {...step1.errors};
+    Object.keys(errors).forEach(key => {
+      if (key.startsWith('endereco.')) {
+        delete errors[key];
+      }
+    });
+    if (Object.keys(errors).length) {
+      const firstError = Object.values(errors)[0];
+      return {
+        ok: false,
+        message: firstError ?? step1.message,
+        errors,
+      };
+    }
+  }
+  return validateCompanyStepLocal(2, values);
 }
 
 export async function importRegistrationsFromCsv(
@@ -157,16 +180,14 @@ export async function importRegistrationsFromCsv(
       },
     };
     const normalized = normalizeCompanyValues(companyValues);
-    const step1 = validateCompanyStepLocal(1, normalized);
-    if (!step1.ok) {
-      const firstError = Object.values(step1.errors)[0];
-      results.push({line, ok: false, message: firstError ?? step1.message});
-      continue;
-    }
-    const step2 = validateCompanyStepLocal(2, normalized);
-    if (!step2.ok) {
-      const firstError = Object.values(step2.errors)[0];
-      results.push({line, ok: false, message: firstError ?? step2.message});
+    const bulkValidation = validateCompanyBulkRow(normalized);
+    if (!bulkValidation.ok) {
+      const firstError = Object.values(bulkValidation.errors)[0];
+      results.push({
+        line,
+        ok: false,
+        message: firstError ?? bulkValidation.message,
+      });
       continue;
     }
     const cnpjKey = normalized.cnpj;
