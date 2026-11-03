@@ -22,7 +22,8 @@ export function RootNavigator() {
         initialRouteName="Splash"
         screenOptions={{
           headerShadowVisible: false,
-          headerTintColor: colors.secondary,
+          headerTintColor: colors.primary,
+          headerTitleStyle: {fontWeight: '700'},
           headerStyle: {backgroundColor: colors.background},
           contentStyle: {backgroundColor: colors.background},
         }}>

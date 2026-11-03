@@ -1,6 +1,6 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {colors, radius, spacing} from '../../theme';
+import {colors, radius, spacing, typography} from '../../theme';
 
 type Props = {
   current: number;
@@ -9,52 +9,48 @@ type Props = {
 };
 
 export function StepIndicator({current, total = 3, labels}: Props) {
-  const steps = Array.from({length: total}, (_, index) => index + 1);
+  const progress = Math.min(100, Math.max(0, (current / total) * 100));
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.row}>
-        {steps.map((step, index) => {
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, {width: `${progress}%`}]} />
+      </View>
+      <View style={styles.stepsRow}>
+        {Array.from({length: total}, (_, index) => {
+          const step = index + 1;
           const active = step === current;
           const done = step < current;
           return (
-            <React.Fragment key={step}>
-              <View style={styles.item}>
-                <View
+            <View key={step} style={styles.stepItem}>
+              <View
+                style={[
+                  styles.circle,
+                  (active || done) && styles.circleActive,
+                  done && styles.circleDone,
+                ]}>
+                <Text
                   style={[
-                    styles.circle,
-                    (active || done) && styles.circleActive,
+                    styles.number,
+                    (active || done) && styles.numberActive,
                   ]}>
-                  <Text
-                    style={[
-                      styles.number,
-                      (active || done) && styles.numberActive,
-                    ]}>
-                    {step}
-                  </Text>
-                </View>
+                  {done ? '✓' : step}
+                </Text>
               </View>
-              {index < steps.length - 1 ? (
-                <View style={[styles.line, done && styles.lineDone]} />
+              {labels?.[index] ? (
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    active && styles.stepLabelActive,
+                  ]}
+                  numberOfLines={1}>
+                  {labels[index]}
+                </Text>
               ) : null}
-            </React.Fragment>
+            </View>
           );
         })}
       </View>
-      {labels ? (
-        <View style={styles.labels}>
-          {labels.map((label, index) => (
-            <Text
-              key={label}
-              style={[
-                styles.label,
-                index + 1 === current && styles.labelActive,
-              ]}>
-              {label}
-            </Text>
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -62,18 +58,31 @@ export function StepIndicator({current, total = 3, labels}: Props) {
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: spacing.xl,
+    gap: spacing.md,
   },
-  row: {
+  progressTrack: {
+    height: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.border,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
+  },
+  stepsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
-  item: {
+  stepItem: {
+    flex: 1,
     alignItems: 'center',
+    gap: spacing.xs,
   },
   circle: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.border,
@@ -85,6 +94,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
+  circleDone: {
+    borderColor: colors.success,
+    backgroundColor: colors.success,
+  },
   number: {
     fontSize: 13,
     fontWeight: '700',
@@ -93,30 +106,13 @@ const styles = StyleSheet.create({
   numberActive: {
     color: colors.white,
   },
-  line: {
-    height: 2,
-    flex: 1,
-    maxWidth: 48,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.sm,
-  },
-  lineDone: {
-    backgroundColor: colors.primary,
-  },
-  labels: {
-    marginTop: spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm,
-  },
-  label: {
-    flex: 1,
+  stepLabel: {
+    ...typography.caption,
+    fontSize: 11,
     textAlign: 'center',
-    fontSize: 12,
-    color: colors.textMuted,
   },
-  labelActive: {
+  stepLabelActive: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

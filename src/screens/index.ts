@@ -4,6 +4,7 @@ export {SelectPersonTypeScreen} from './SelectPersonType/SelectPersonTypeScreen'
 export {PersonFormScreen} from './PersonForm/PersonFormScreen';
 export {CompanyFormScreen} from './CompanyForm/CompanyFormScreen';
 export {RegistrationsScreen} from './Registrations/RegistrationsScreen';
+export {DocumentsScreen} from './Documents/DocumentsScreen';
 export {SettingsScreen} from './Settings/SettingsScreen';
 export {RegistrationDetailsScreen} from './RegistrationDetails/RegistrationDetailsScreen';
 export {FiltersScreen} from './Filters/FiltersScreen';

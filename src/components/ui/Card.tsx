@@ -1,19 +1,27 @@
 import React, {PropsWithChildren} from 'react';
-import {Pressable, StyleSheet, View, ViewStyle} from 'react-native';
+import {
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
 import {colors, radius, spacing} from '../../theme';
 
 type Props = PropsWithChildren<{
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  elevated?: boolean;
 }>;
 
-export function Card({children, onPress, style}: Props) {
+export function Card({children, onPress, style, elevated = true}: Props) {
   if (onPress) {
     return (
       <Pressable
         onPress={onPress}
         style={({pressed}) => [
           styles.card,
+          elevated && styles.elevated,
           pressed && styles.pressed,
           style,
         ]}>
@@ -22,7 +30,9 @@ export function Card({children, onPress, style}: Props) {
     );
   }
 
-  return <View style={[styles.card, style]}>{children}</View>;
+  return (
+    <View style={[styles.card, elevated && styles.elevated, style]}>{children}</View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -32,9 +42,11 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  elevated: {
     shadowColor: colors.primary,
-    shadowOffset: {width: 0, height: 6},
-    shadowOpacity: 0.08,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 2,
   },

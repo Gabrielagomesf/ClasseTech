@@ -21,6 +21,8 @@ export function normalizeCompanyValues(
 ): CompanyFormValues {
   return {
     ...values,
+    cnpj: stripDigits(values.cnpj),
+    cnpjMatriz: values.cnpjMatriz ? stripDigits(values.cnpjMatriz) : '',
     telefone: stripDigits(values.telefone),
     endereco: {
       ...values.endereco,

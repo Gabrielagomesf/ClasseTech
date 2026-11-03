@@ -17,6 +17,7 @@ type Props = {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  compact?: boolean;
 };
 
 export function Button({
@@ -26,6 +27,7 @@ export function Button({
   loading = false,
   disabled = false,
   style,
+  compact = false,
 }: Props) {
   const isDisabled = disabled || loading;
   const lightText = variant === 'primary' || variant === 'success';
@@ -37,6 +39,7 @@ export function Button({
       disabled={isDisabled}
       style={({pressed}) => [
         styles.base,
+        compact && styles.compact,
         styles[variant],
         pressed && !isDisabled && styles.pressed,
         isDisabled && styles.disabled,
@@ -48,6 +51,7 @@ export function Button({
         <Text
           style={[
             typography.button,
+            compact && styles.compactText,
             !lightText && {color: colors.primary},
             variant === 'ghost' && {color: colors.textSecondary},
             variant === 'secondary' && {color: colors.text},
@@ -61,11 +65,18 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
-    borderRadius: radius.md,
+    minHeight: 52,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  compact: {
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+  },
+  compactText: {
+    fontSize: 13,
   },
   primary: {
     backgroundColor: colors.primary,
@@ -82,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   pressed: {
-    opacity: 0.9,
+    opacity: 0.92,
   },
   disabled: {
     opacity: 0.5,

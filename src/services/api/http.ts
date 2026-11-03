@@ -3,7 +3,7 @@ import {API_BASE_URL} from '../../config/api';
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
 });
 
 export type ApiFieldErrors = Record<string, string>;

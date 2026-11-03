@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.border,
-    backgroundColor: colors.background,
+    backgroundColor: colors.inputBackground,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',

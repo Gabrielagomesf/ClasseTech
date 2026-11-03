@@ -8,10 +8,13 @@ export type AddressFormValues = {
   estado: string;
 };
 
+import type {EstablishmentType, SexOption} from '../constants/catalog';
+
 export type PersonFormValues = {
   nomeCompleto: string;
   cpf: string;
   dataNascimento: string;
+  sexo: SexOption | '';
   email: string;
   telefone: string;
   endereco: AddressFormValues;
@@ -29,6 +32,8 @@ export type CompanyFormValues = {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
+  tipoEstabelecimento: EstablishmentType | '';
+  cnpjMatriz?: string;
   situacaoCadastral?: string;
   dataAbertura?: string;
   naturezaJuridica?: string;
@@ -43,6 +48,7 @@ export const emptyPersonValues: PersonFormValues = {
   nomeCompleto: '',
   cpf: '',
   dataNascimento: '',
+  sexo: '',
   email: '',
   telefone: '',
   endereco: {
@@ -60,6 +66,8 @@ export const emptyCompanyValues: CompanyFormValues = {
   cnpj: '',
   razaoSocial: '',
   nomeFantasia: '',
+  tipoEstabelecimento: '',
+  cnpjMatriz: '',
   situacaoCadastral: '',
   dataAbertura: '',
   naturezaJuridica: '',

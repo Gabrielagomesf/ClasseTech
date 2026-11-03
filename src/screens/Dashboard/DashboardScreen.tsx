@@ -9,8 +9,13 @@ import {
 import type {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 import type {CompositeScreenProps} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Card, EmptyState, Screen, StatusDot} from '../../components';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {AppIcon, Button, Card, EmptyState, Screen, StatusDot} from '../../components';
+import {useLayout} from '../../hooks/useLayout';
+import {useUserProfile} from '../../context/UserProfileContext';
 import {useRegistrations} from '../../context/RegistrationsContext';
+import {CARGO_OPTIONS, getCatalogLabel} from '../../constants/catalog';
+import {getProfileGreeting} from '../../utils/profileDisplay';
 import type {MainTabParamList, RootStackParamList} from '../../types';
 import {colors, radius, spacing, typography} from '../../theme';
 import {
@@ -25,48 +30,98 @@ type Props = CompositeScreenProps<
 >;
 
 export function DashboardScreen({navigation}: Props) {
+  const insets = useSafeAreaInsets();
   const {stats, loading, ready} = useRegistrations();
+  const {profile, initials, hasProfile} = useUserProfile();
+  const {statCardWidth, gridGap, scaleFont, isCompact} = useLayout();
+  const greeting = getProfileGreeting(profile.displayName);
+  const cargoLabel = getCatalogLabel(CARGO_OPTIONS, profile.jobTitle, '');
+  const subtitle = cargoLabel
+    ? cargoLabel
+    : hasProfile
+      ? 'Gestão inteligente de cadastros'
+      : 'Complete seu perfil em Mais → Meu perfil';
 
   const cards = [
-    {label: 'Total', value: String(stats.total), color: colors.primary},
-    {label: 'Pessoas físicas', value: String(stats.pf), color: colors.primaryDark},
+    {
+      label: 'Total de cadastros',
+      value: String(stats.total),
+      accent: colors.primary,
+    },
+    {
+      label: 'Pessoas físicas',
+      value: String(stats.pf),
+      accent: colors.primaryDark,
+    },
     {
       label: 'Pessoas jurídicas',
       value: String(stats.pj),
-      color: colors.secondary,
+      accent: colors.secondary,
     },
     {
       label: 'Pendências',
       value: String(stats.pending),
-      color: colors.warning,
+      accent: colors.warning,
     },
   ];
 
   return (
-    <Screen scroll>
+    <Screen
+      scroll
+      contentStyle={{paddingBottom: spacing.xxxl + Math.max(insets.bottom, 8)}}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>Cadastro+</Text>
-          <Text style={typography.caption}>Olá! Gestão inteligente de cadastros</Text>
+        <View style={styles.greetingCol}>
+          <Text style={[styles.greeting, {fontSize: scaleFont(isCompact ? 20 : 22)}]}>
+            {greeting}
+          </Text>
+          <Text style={typography.caption}>{subtitle}</Text>
         </View>
-        <Pressable
-          onPress={() => navigation.navigate('Settings')}
-          style={styles.settingsBtn}>
-          <Text style={styles.settingsIcon}>⚙</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityLabel="Notificações"
+            onPress={() =>
+              navigation.navigate('Registrations', {
+                documentationStatus: 'pending',
+              })
+            }
+            style={styles.iconBtn}>
+            <AppIcon name="bell-outline" size={22} color={colors.textSecondary} />
+            {stats.pending > 0 ? <View style={styles.notifDot} /> : null}
+          </Pressable>
+          <Pressable
+            accessibilityLabel="Perfil"
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.profileBtn}>
+            {hasProfile ? (
+              <Text style={styles.profileInitials}>{initials}</Text>
+            ) : (
+              <AppIcon name="account" size={22} color={colors.white} />
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {!ready || loading ? (
         <ActivityIndicator color={colors.primary} style={{marginVertical: 24}} />
       ) : null}
 
-      <View style={styles.statsGrid}>
+      <View style={[styles.statsGrid, {gap: gridGap}]}>
         {cards.map(stat => (
-          <Card key={stat.label} style={styles.statCard}>
-            <Text style={[styles.statValue, {color: stat.color}]}>
+          <Card
+            key={stat.label}
+            style={[
+              styles.statCard,
+              {width: statCardWidth, maxWidth: statCardWidth},
+            ]}>
+            <View style={[styles.statAccent, {backgroundColor: stat.accent}]} />
+            <Text
+              style={[
+                styles.statValue,
+                {color: stat.accent, fontSize: scaleFont(isCompact ? 24 : 28)},
+              ]}>
               {stat.value}
             </Text>
-            <Text style={typography.caption}>{stat.label}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
           </Card>
         ))}
       </View>
@@ -77,25 +132,8 @@ export function DashboardScreen({navigation}: Props) {
         style={styles.cta}
       />
 
-      <View style={styles.quickActions}>
-        <Button
-          title="Consultar cadastros"
-          variant="secondary"
-          onPress={() => navigation.navigate('Registrations')}
-          style={styles.flex}
-        />
-        <Button
-          title="Pendências"
-          variant="secondary"
-          onPress={() =>
-            navigation.navigate('Registrations', undefined as never)
-          }
-          style={styles.flex}
-        />
-      </View>
-
       <Text style={[typography.subtitle, styles.sectionTitle]}>
-        Cadastros recentes
+        Últimos cadastros
       </Text>
 
       {stats.recent.length === 0 ? (
@@ -116,13 +154,16 @@ export function DashboardScreen({navigation}: Props) {
               })
             }>
             <View style={styles.recentRow}>
-              <StatusDot status={item.documentationStatus} />
+              <StatusDot status={item.documentationStatus} showIcon size={32} />
               <View style={styles.recentText}>
                 <Text style={typography.subtitle} numberOfLines={1}>
                   {getRegistrationDisplayName(item)}
                 </Text>
                 <Text style={typography.caption}>
-                  {item.type} · {getRegistrationDocumentMasked(item)} ·{' '}
+                  {item.type === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'} ·{' '}
+                  {getRegistrationDocumentMasked(item)}
+                </Text>
+                <Text style={typography.caption}>
                   {formatIsoDateBr(item.createdAt)}
                 </Text>
               </View>
@@ -141,13 +182,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  brand: {
-    ...typography.title,
-    color: colors.primary,
+  greetingCol: {
+    flex: 1,
+    gap: 2,
   },
-  settingsBtn: {
-    width: 40,
-    height: 40,
+  greeting: {
+    ...typography.title,
+    fontSize: 22,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iconBtn: {
+    width: 42,
+    height: 42,
     borderRadius: radius.full,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -155,36 +205,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingsIcon: {
-    fontSize: 18,
-    color: colors.textSecondary,
+  notifDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.warning,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
+  },
+  profileBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInitials: {
+    color: colors.white,
+    fontWeight: '800',
+    fontSize: 14,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
     marginBottom: spacing.lg,
   },
   statCard: {
-    width: '47%',
-    flexGrow: 1,
-    minWidth: 140,
+    overflow: 'hidden',
+    gap: spacing.xs,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+  statAccent: {
+    width: 28,
+    height: 4,
+    borderRadius: radius.full,
     marginBottom: spacing.xs,
   },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    ...typography.caption,
+    lineHeight: 18,
+  },
   cta: {
-    marginBottom: spacing.md,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
     marginBottom: spacing.xxl,
-  },
-  flex: {
-    flex: 1,
   },
   sectionTitle: {
     marginBottom: spacing.md,

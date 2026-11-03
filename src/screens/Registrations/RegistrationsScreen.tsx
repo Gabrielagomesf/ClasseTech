@@ -1,6 +1,7 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -9,7 +10,16 @@ import {
 import type {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 import type {CompositeScreenProps} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Card, EmptyState, Screen, StatusDot} from '../../components';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  AppIcon,
+  Card,
+  EmptyState,
+  PillTabs,
+  Screen,
+  StatusDot,
+} from '../../components';
+import {useLayout} from '../../hooks/useLayout';
 import {useRegistrations} from '../../context/RegistrationsContext';
 import type {
   DocumentationStatus,
@@ -17,6 +27,10 @@ import type {
   PersonType,
   RootStackParamList,
 } from '../../types';
+import {
+  ESTABLISHMENT_TYPE_OPTIONS,
+  getCatalogLabel,
+} from '../../constants/catalog';
 import {colors, radius, spacing, typography} from '../../theme';
 import {
   formatIsoDateBr,
@@ -31,13 +45,21 @@ type Props = CompositeScreenProps<
 
 type TypeFilter = 'ALL' | PersonType;
 
-export function RegistrationsScreen({navigation}: Props) {
-  const {items, loading, refresh} = useRegistrations();
+export function RegistrationsScreen({navigation, route}: Props) {
+  const insets = useSafeAreaInsets();
+  const {scaleFont, isCompact} = useLayout();
+  const {items, loading} = useRegistrations();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<
     'ALL' | DocumentationStatus
-  >('ALL');
+  >(route.params?.documentationStatus ?? 'ALL');
+
+  useEffect(() => {
+    if (route.params?.documentationStatus) {
+      setStatusFilter(route.params.documentationStatus);
+    }
+  }, [route.params?.documentationStatus]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,59 +88,61 @@ export function RegistrationsScreen({navigation}: Props) {
   }, [items, query, typeFilter, statusFilter]);
 
   return (
-    <Screen scroll>
+    <Screen
+      scroll
+      contentStyle={{paddingBottom: spacing.xxxl + Math.max(insets.bottom, 8)}}>
       <View style={styles.header}>
-        <Text style={typography.title}>Cadastros</Text>
-        <Button
-          title="Filtros"
-          variant="ghost"
-          onPress={() => navigation.navigate('Filters', {})}
+        <Text style={[typography.title, {fontSize: scaleFont(isCompact ? 22 : 24)}]}>
+          Cadastros
+        </Text>
+        <Pressable
+          accessibilityLabel="Filtros"
+          onPress={() =>
+            navigation.navigate('Filters', {
+              type: typeFilter === 'ALL' ? undefined : typeFilter,
+              documentationStatus:
+                statusFilter === 'ALL' || statusFilter === 'issue'
+                  ? undefined
+                  : statusFilter,
+            })
+          }
+          style={styles.filterBtn}>
+          <AppIcon name="filter-variant" size={22} color={colors.primary} />
+        </Pressable>
+      </View>
+
+      <View style={styles.searchWrap}>
+        <AppIcon name="magnify" size={22} color={colors.textMuted} />
+        <TextInput
+          placeholder="Buscar por nome, CPF ou CNPJ"
+          placeholderTextColor={colors.textMuted}
+          value={query}
+          onChangeText={setQuery}
+          style={styles.search}
         />
       </View>
 
-      <TextInput
-        placeholder="Buscar por nome, CPF ou CNPJ"
-        placeholderTextColor={colors.textMuted}
-        value={query}
-        onChangeText={setQuery}
-        style={styles.search}
+      <PillTabs
+        value={typeFilter}
+        onChange={setTypeFilter}
+        options={[
+          {value: 'ALL', label: 'Todos'},
+          {value: 'PF', label: 'PF'},
+          {value: 'PJ', label: 'PJ'},
+        ]}
       />
 
-      <View style={styles.tabs}>
-        {(
-          [
-            ['ALL', 'Todos'],
-            ['PF', 'Pessoa Física'],
-            ['PJ', 'Pessoa Jurídica'],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            title={label}
-            variant={typeFilter === value ? 'primary' : 'secondary'}
-            onPress={() => setTypeFilter(value)}
-            style={styles.tab}
-          />
-        ))}
-      </View>
-
-      <View style={styles.statusTabs}>
-        {(
-          [
-            ['ALL', 'Todos status'],
-            ['complete', 'Completa'],
-            ['pending', 'Pendente'],
-          ] as const
-        ).map(([value, label]) => (
-          <Button
-            key={value}
-            title={label}
-            variant={statusFilter === value ? 'primary' : 'ghost'}
-            onPress={() => setStatusFilter(value)}
-            style={styles.statusTab}
-          />
-        ))}
-      </View>
+      {statusFilter !== 'ALL' ? (
+        <View style={styles.activeFilter}>
+          <Text style={styles.activeFilterText}>
+            Filtro:{' '}
+            {statusFilter === 'pending' ? 'Pendentes' : 'Documentação completa'}
+          </Text>
+          <Pressable onPress={() => setStatusFilter('ALL')}>
+            <Text style={styles.clearFilter}>Limpar</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator color={colors.primary} style={{marginTop: 24}} />
@@ -141,13 +165,20 @@ export function RegistrationsScreen({navigation}: Props) {
                 })
               }>
               <View style={styles.row}>
-                <StatusDot status={item.documentationStatus} />
+                <StatusDot status={item.documentationStatus} showIcon size={32} />
                 <View style={styles.textCol}>
                   <Text style={typography.subtitle} numberOfLines={1}>
                     {getRegistrationDisplayName(item)}
                   </Text>
                   <Text style={typography.caption}>
-                    {item.type} · {getRegistrationDocumentMasked(item)}
+                    {item.type === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                    {item.type === 'PJ' && item.company?.tipoEstabelecimento
+                      ? ` · ${getCatalogLabel(
+                          ESTABLISHMENT_TYPE_OPTIONS,
+                          item.company.tipoEstabelecimento,
+                        )}`
+                      : ''}{' '}
+                    · {getRegistrationDocumentMasked(item)}
                   </Text>
                   <Text style={typography.caption}>
                     {formatIsoDateBr(item.createdAt)}
@@ -156,11 +187,6 @@ export function RegistrationsScreen({navigation}: Props) {
               </View>
             </Card>
           ))}
-          <Button
-            title="Atualizar lista"
-            variant="ghost"
-            onPress={() => refresh()}
-          />
         </View>
       )}
     </Screen>
@@ -174,39 +200,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.md,
   },
-  search: {
-    minHeight: 48,
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 50,
     borderRadius: radius.md,
+    backgroundColor: colors.inputBackground,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    color: colors.text,
     marginBottom: spacing.md,
-  },
-  tabs: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
-  tab: {
-    paddingHorizontal: spacing.md,
-    minHeight: 40,
+  search: {
+    flex: 1,
+    minHeight: 50,
+    color: colors.text,
+    fontSize: 15,
+    paddingVertical: 0,
   },
-  statusTabs: {
+  activeFilter: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  statusTab: {
-    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
     paddingHorizontal: spacing.sm,
+  },
+  activeFilterText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  clearFilter: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   list: {
     flex: 1,
     gap: spacing.sm,
+    marginTop: spacing.lg,
   },
   card: {
     marginBottom: spacing.sm,

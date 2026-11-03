@@ -15,8 +15,13 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: undefined;
-  Registrations: undefined;
+  Registrations:
+    | {
+        documentationStatus?: 'ALL' | 'complete' | 'pending' | 'issue';
+      }
+    | undefined;
   NewRegistration: undefined;
+  Documents: undefined;
   Settings: undefined;
 };
 

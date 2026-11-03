@@ -21,6 +21,18 @@ const MIGRATIONS = [
     ON registrations(type)`,
   `CREATE INDEX IF NOT EXISTS idx_registrations_status
     ON registrations(documentation_status)`,
+  `CREATE TABLE IF NOT EXISTS user_profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    display_name TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL DEFAULT '',
+    job_title TEXT NOT NULL DEFAULT '',
+    gender TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+  )`,
+];
+
+const OPTIONAL_ALTER_STATEMENTS = [
+  `ALTER TABLE user_profile ADD COLUMN gender TEXT NOT NULL DEFAULT ''`,
 ];
 
 export async function initDatabase(): Promise<NitroSQLiteConnection> {
@@ -31,6 +43,13 @@ export async function initDatabase(): Promise<NitroSQLiteConnection> {
   db = open({name: DB_NAME});
   for (const statement of MIGRATIONS) {
     await db.executeAsync(statement);
+  }
+  for (const statement of OPTIONAL_ALTER_STATEMENTS) {
+    try {
+      await db.executeAsync(statement);
+    } catch {
+      // Column already exists on upgraded databases.
+    }
   }
   return db;
 }

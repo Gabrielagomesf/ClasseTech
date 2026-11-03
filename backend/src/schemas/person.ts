@@ -34,6 +34,9 @@ export const personStep1Schema = z.object({
     .refine(isValidBirthDateBr, 'Data de nascimento inválida'),
   email: z.email('E-mail inválido'),
   telefone: z.string().refine(isValidPhoneBr, 'Telefone inválido'),
+  sexo: z.enum(['feminino', 'masculino', 'outro', 'prefiro_nao_informar'], {
+    message: 'Selecione o sexo',
+  }),
 });
 
 export const personStep2Schema = z.object({

@@ -30,3 +30,17 @@ export function documentationLabel(status: DocumentationStatus): string {
       return 'Documentação com pendência';
   }
 }
+
+const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
+  identificacao: 'Documento de identificação',
+  comprovante_residencia: 'Comprovante de residência',
+  complementar: 'Documento complementar',
+  cartao_cnpj: 'Cartão CNPJ',
+  contrato_social: 'Contrato social',
+  documento_representante: 'Documento do representante',
+  comprovante_endereco: 'Comprovante de endereço',
+};
+
+export function documentKindLabel(kind: DocumentKind): string {
+  return DOCUMENT_KIND_LABELS[kind] ?? kind;
+}

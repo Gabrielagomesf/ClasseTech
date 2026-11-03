@@ -4,7 +4,7 @@ buildscript {
         minSdkVersion = 24
         compileSdkVersion = 37
         targetSdkVersion = 36
-        ndkVersion = "27.1.12297006"
+        ndkVersion = "29.0.14206865"
         kotlinVersion = "2.2.0"
     }
     repositories {
@@ -19,3 +19,30 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// AGP 9 can leave native modules on the default minSdk (22) for CMake/Prefab,
+// which breaks hermestooling (built for API 24). Force minSdk on all Android modules.
+def forceAndroidMinSdk = { Project sub ->
+    def androidExt = sub.extensions.findByName("android")
+    if (androidExt == null) {
+        return
+    }
+    def api = rootProject.ext.minSdkVersion as int
+    androidExt.defaultConfig.minSdk = api
+    try {
+        androidExt.defaultConfig.externalNativeBuild.cmake.arguments.addAll([
+            "-DANDROID_PLATFORM=android-${api}",
+            "-DCMAKE_SYSTEM_VERSION=${api}",
+        ])
+    } catch (Exception ignored) {
+        // Module has no CMake config.  
+    }
+}
+
+subprojects { sub ->
+    if (sub.state.executed) {
+        forceAndroidMinSdk(sub)
+    } else {
+        sub.afterEvaluate { forceAndroidMinSdk(sub) }
+    }
+}

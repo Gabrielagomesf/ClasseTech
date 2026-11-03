@@ -1,3 +1,5 @@
+export {AppIcon} from './ui/AppIcon';
+export type {AppIconName} from './ui/AppIcon';
 export {Button} from './ui/Button';
 export {Card} from './ui/Card';
 export {Screen} from './ui/Screen';
@@ -5,4 +7,9 @@ export {StepIndicator} from './ui/StepIndicator';
 export {StatusDot} from './ui/StatusDot';
 export {EmptyState} from './ui/EmptyState';
 export {FormField} from './ui/FormField';
+export {SelectField} from './ui/SelectField';
+export {FormRow} from './ui/FormRow';
+export {ResponsiveColumns} from './ui/ResponsiveColumns';
 export {DocumentPickerField} from './ui/DocumentPickerField';
+export {PillTabs} from './ui/PillTabs';
+export {SegmentedTabs} from './ui/SegmentedTabs';

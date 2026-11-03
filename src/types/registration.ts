@@ -1,3 +1,5 @@
+import type {EstablishmentType, SexOption} from '../constants/catalog';
+
 export type PersonType = 'PF' | 'PJ';
 
 export type DocumentationStatus = 'complete' | 'pending' | 'issue';
@@ -16,6 +18,7 @@ export type PersonData = {
   nomeCompleto: string;
   cpf: string;
   dataNascimento: string;
+  sexo?: SexOption | '';
   email: string;
   telefone: string;
   endereco: Address;
@@ -33,6 +36,8 @@ export type CompanyData = {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
+  tipoEstabelecimento?: EstablishmentType | '';
+  cnpjMatriz?: string;
   situacaoCadastral?: string;
   dataAbertura?: string;
   naturezaJuridica?: string;

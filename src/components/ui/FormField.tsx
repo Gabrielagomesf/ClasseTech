@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   StyleSheet,
   Text,
@@ -26,18 +26,35 @@ export function FormField({
   containerStyle,
   rightElement,
   style,
+  onFocus,
+  onBlur,
   ...inputProps
 }: Props) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <View style={[styles.container, containerStyle]}>
       <Text style={typography.label}>
         {label}
         {required ? <Text style={styles.asterisk}> *</Text> : null}
       </Text>
-      <View style={[styles.inputRow, error ? styles.inputError : null]}>
+      <View
+        style={[
+          styles.inputRow,
+          focused && !error && styles.inputFocused,
+          error ? styles.inputError : null,
+        ]}>
         <TextInput
           placeholderTextColor={colors.textMuted}
           style={[styles.input, rightElement ? styles.inputWithRight : null, style]}
+          onFocus={e => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={e => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
           {...inputProps}
         />
         {rightElement}
@@ -57,21 +74,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   inputRow: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: colors.border,
+    minHeight: 50,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.inputBackground,
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: spacing.sm,
   },
+  inputFocused: {
+    borderColor: colors.borderFocus,
+    backgroundColor: colors.surface,
+  },
   inputError: {
     borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
   },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.md,
     color: colors.text,
     fontSize: 15,

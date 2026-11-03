@@ -13,6 +13,25 @@ jest.mock('../src/navigation', () => ({
   RootNavigator: () => null,
 }));
 
+jest.mock('../src/context/UserProfileContext', () => ({
+  UserProfileProvider: ({children}: {children: React.ReactNode}) => children,
+  useUserProfile: () => ({
+    ready: true,
+    profile: {
+      displayName: '',
+      email: '',
+      jobTitle: '',
+      sexo: '',
+      updatedAt: new Date(0).toISOString(),
+    },
+    firstName: '',
+    initials: '?',
+    hasProfile: false,
+    refresh: jest.fn(),
+    save: jest.fn(),
+  }),
+}));
+
 jest.mock('../src/context/RegistrationsContext', () => ({
   RegistrationsProvider: ({children}: {children: React.ReactNode}) => children,
   useRegistrations: () => ({

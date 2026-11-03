@@ -3,6 +3,7 @@ import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {enableScreens} from 'react-native-screens';
 import {RegistrationsProvider} from './src/context/RegistrationsContext';
+import {UserProfileProvider} from './src/context/UserProfileContext';
 import {RootNavigator} from './src/navigation';
 
 enableScreens();
@@ -12,7 +13,9 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" />
       <RegistrationsProvider>
-        <RootNavigator />
+        <UserProfileProvider>
+          <RootNavigator />
+        </UserProfileProvider>
       </RegistrationsProvider>
     </SafeAreaProvider>
   );
